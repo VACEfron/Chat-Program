@@ -32,8 +32,6 @@ namespace ChatProgram
 
             Logger.Log($"Started server on port {_port}");
 
-            _ = Task.Run(() => HandleDisconnectsAsync());
-
             while (true)
             {
                 var client = await _listener.AcceptTcpClientAsync();
@@ -41,25 +39,19 @@ namespace ChatProgram
             }
         }
 
-        private async Task HandleDisconnectsAsync()
+        private async Task BroadcastAsync(string message, string[] usernamesToSkip = null)
         {
-            while (true)
-            {
-                foreach (TcpClient client in _clients.Select(x => x.Item1).ToArray())
-                {
-                    try
-                    {
-                        var buffer = new byte[client.ReceiveBufferSize];
-                        client.Client.Receive(buffer);
-                    }
-                    catch
-                    {
-                        RemoveClient(client);
-                    }
-                }
+            var stream = new MemoryStream();
+            using var writer = new BinaryWriter(stream);
 
-                await Task.Delay(500);
-            }
+            writer.Write((byte)Opcode.HandleBroadcast);
+            writer.Write((ushort)message.Length);
+            writer.Write(Encoding.ASCII.GetBytes(message));
+
+            usernamesToSkip ??= new string[0];
+
+            foreach (TcpClient cl in _clients.Where(x => !usernamesToSkip.Contains(x.Item2)).Select(x => x.Item1))
+                await cl.GetStream().WriteAsync(stream.ToArray());
         }
 
         private async Task HandleClientAsync(TcpClient client)
@@ -78,6 +70,8 @@ namespace ChatProgram
                     }
                     catch
                     {
+                        string username = GetUsername(client);
+                        await BroadcastAsync(_config.GoodbyeMessage.Replace("[USERNAME]", username), new[] { username });
                         RemoveClient(client);
                         return;
                     }
@@ -96,14 +90,12 @@ namespace ChatProgram
                         string message;
 
                         if (!_clients.Any(x => x.Item2 == connPacket.Username))
-                        {
-                            _clients.Add(Tuple.Create(client, connPacket.Username));
-                            Logger.Log($"{client.Client.RemoteEndPoint as IPEndPoint} connected as {connPacket.Username}");
+                        {                           
                             success = true;
                             message = "Successfully connected.";
                         }
                         else
-                        {                        
+                        {
                             success = false;
                             message = "Username already exists.";
                         }
@@ -127,6 +119,15 @@ namespace ChatProgram
                         writer.Write(Encoding.ASCII.GetBytes(message));
 
                         await stream.WriteAsync(memoryStream.ToArray());
+
+                        if (success)
+                        {
+                            _clients.Add(Tuple.Create(client, connPacket.Username));
+                            Logger.Log($"{client.Client.RemoteEndPoint as IPEndPoint} connected as {connPacket.Username}");
+                            await BroadcastAsync(_config.WelcomeMessage.Replace("[USERNAME]", connPacket.Username), new[] { connPacket.Username });
+                        }
+                        else
+                            Logger.Log($"{client.Client.RemoteEndPoint as IPEndPoint} tried to connect but received an error: {message}");
                     }
                 }
                 catch(Exception e)
@@ -135,6 +136,9 @@ namespace ChatProgram
                 }
             }
         }
+
+        private string GetUsername(TcpClient client)
+            => _clients.FirstOrDefault(x => (x.Item1.Client.RemoteEndPoint as IPEndPoint).ToString() == (client.Client.RemoteEndPoint as IPEndPoint).ToString()).Item2;
 
         private void RemoveClient(TcpClient client)
         {

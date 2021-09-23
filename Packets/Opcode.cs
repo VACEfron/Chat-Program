@@ -4,6 +4,7 @@
     {
         HandleConnect,
         HandleMessage,
-        HandleServerResponse
+        HandleServerResponse,
+        HandleBroadcast
     }
 }

@@ -22,7 +22,7 @@ namespace Client
         {
             _client = new TcpClient();
 
-            var colors = new byte[] { 9, 11, 1, 3, 2, 5, 4, 6, 10, 13, 12, 14 };
+            var colors = new byte[] { 9, 11, 1, 3, 2, 4, 6, 10, 13, 12, 14 };
             _color = colors[new Random().Next(colors.Length)];
         }
 
@@ -75,12 +75,19 @@ namespace Client
                 else if (packet is ServerResponsePacket responsePacket)
                 {
                     if (responsePacket.Success)
-                        Console.WriteLine($"\nSuccessfully connected to {_ip}:{_port}. Welcome to {responsePacket.ServerName}!\nThere {(responsePacket.OnlineCount == 2 ? "is 1 other user" : $"are {responsePacket.OnlineCount - 1} other users")} online.\n");
+                        Console.WriteLine($"\nSuccessfully connected to {_ip}:{_port}. Welcome to {responsePacket.ServerName}!\nThere {(responsePacket.OnlineCount == 1 ? "is 1 other user" : $"are {responsePacket.OnlineCount} other users")} online.\n");
                     else
                     {
                         Console.WriteLine($"\nFailed to connect. The server returned an error: {responsePacket.Message}");
                         Environment.Exit(0);
                     }
+                }
+                else if (packet is BroadcastPacket broadcastPacket)
+                {
+                    var previousColor = Console.ForegroundColor;
+                    Console.ForegroundColor = ConsoleColor.DarkMagenta;
+                    Console.WriteLine(broadcastPacket.Message);
+                    Console.ForegroundColor = previousColor;
                 }
             }
         }

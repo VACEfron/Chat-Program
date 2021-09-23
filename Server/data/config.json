@@ -1,4 +1,6 @@
 {
     "Port": 1337,
-    "ServerName":  "VAC Efron's Test Server"
+    "ServerName": "VAC Efron's Test Server",
+    "WelcomeMessage": "[USERNAME] has joined the chat. Welcome!",
+    "GoodbyeMessage": "[USERNAME] has left the chat. See you soon!"
 }
