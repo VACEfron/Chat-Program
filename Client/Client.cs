@@ -64,7 +64,7 @@ namespace Client
 
                 if (packet is MessagePacket messagePacket)
                 {
-                    if (messagePacket?.Length > 0)
+                    if (messagePacket?.Message.Length > 0)
                     {
                         var previousColor = Console.ForegroundColor;
                         Console.ForegroundColor = (ConsoleColor)messagePacket.Color;
