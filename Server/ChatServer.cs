@@ -81,7 +81,8 @@ namespace ChatProgram
                     if (packet is MessagePacket msgPacket)
                     {
                         foreach (var cl in _clients.Where(x => x.Item2 != msgPacket.Username))
-                            await cl.Item1.GetStream().WriteAsync(buffer);
+                            if (string.IsNullOrEmpty(msgPacket.Recipient) || cl.Item2 == msgPacket.Recipient)
+                                await cl.Item1.GetStream().WriteAsync(buffer);
                     }
                     else if (packet is ConnectPacket connPacket)
                     {

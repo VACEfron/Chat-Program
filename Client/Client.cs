@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Packets;
 
@@ -110,23 +111,32 @@ namespace Client
                     writer.Write((ushort)msg.Length);
 
                     // Random color
-                    writer.Write(_color);
-
-                    var buffer = new byte[16];
-                    byte[] usernameBytes = Encoding.ASCII.GetBytes(_username);
-
-                    for (int i = 0; i < usernameBytes.Length; i++)
-                        buffer[i] = usernameBytes[i];
+                    writer.Write(_color);                    
 
                     // Username
-                    writer.Write(buffer);
+                    writer.Write(CreateTextBuffer(_username, 16));
+
+                    // Recipient
+                    var match = Regex.Match(msg, "/whisper \"(.*?)\" (.*)");
+                    writer.Write(CreateTextBuffer(match.Success ? match.Groups[1].Value : string.Empty, 16));
 
                     // Message
-                    writer.Write(Encoding.ASCII.GetBytes(msg));
+                    writer.Write(Encoding.ASCII.GetBytes(match.Success ? match.Groups[2].Value : msg));
 
                     await _stream.WriteAsync(memoryStream.ToArray());
                 }
             }
+        }
+
+        private static byte[] CreateTextBuffer(string content, int length)
+        {
+            var buffer = new byte[length];
+            byte[] usernameBytes = Encoding.ASCII.GetBytes(content);
+
+            for (int i = 0; i < usernameBytes.Length; i++)
+                buffer[i] = usernameBytes[i];
+
+            return buffer;
         }
 
         private void AskIpAdressAndPort()

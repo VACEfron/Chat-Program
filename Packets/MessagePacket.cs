@@ -10,11 +10,13 @@ namespace Packets
 
             Color = Reader.ReadByte();
             Username = Encoding.ASCII.GetString(Reader.ReadBytes(16)).Trim('\0');
+            Recipient = Encoding.ASCII.GetString(Reader.ReadBytes(16)).Trim('\0');
             Message = Encoding.ASCII.GetString(Reader.ReadBytes(length)).Trim('\0');
         }
 
         public byte Color { get; }
         public string Username { get; }
+        public string Recipient { get; }
         public string Message { get; }
     }
 }
